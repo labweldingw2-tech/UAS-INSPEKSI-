@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>UAS INSPEKSI 1</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDT Certification Exam - VT PT MT</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --secondary: #d93025;
+            --success: #28a745;
+            --bg: #f8f9fa;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; width: 95%; max-width: 600px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        
+        /* Header & Timer */
+        .exam-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        #timer { font-size: 1.3rem; font-weight: bold; color: var(--secondary); background: #ffeeee; padding: 5px 15px; border-radius: 20px; }
+        
+        /* Form Style */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        
+        /* Quiz Content */
+        .progress-bar { font-size: 0.9rem; color: #666; margin-bottom: 10px; }
+        .question-text { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; min-height: 60px; }
+        .option { display: block; padding: 15px; border: 2px solid #eee; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .option:hover { border-color: var(--primary); background: #e8f0fe; }
+        .option.selected { border-color: var(--primary); background: #d2e3fc; color: var(--primary); }
+        
+        /* Buttons */
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 1rem; width: 100%; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Results */
+        .result-score { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        .pass { color: var(--success); }
+        .fail { color: var(--secondary); }
+        .sync-text { font-size: 0.8rem; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="login-page" class="container">
+    <h1 style="text-align:center; color: var(--primary); margin-top:0;">NDT Examination</h1>
+    <p style="text-align:center; color: #666;">Methods: VT, PT, & MT</p>
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+    <div class="form-group">
+        <label>Full Name:</label>
+        <input type="text" id="user-name" placeholder="Enter your full name" required>
+    </div>
+    <div class="form-group">
+        <label>NIM / Student ID:</label>
+        <input type="text" id="user-nim" placeholder="Enter your NIM" required>
+    </div>
+    <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; border-left: 5px solid var(--primary);">
+        <b>Exam Instructions:</b>
+        <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>Time Limit: <b>45 Minutes</b></li>
+            <li>Passing Grade: <b>70%</b></li>
+            <li>Questions are randomized for each attempt.</li>
+        </ul>
+    </div>
+    <button class="btn" onclick="startExam()">START EXAMINATION</button>
+</div>
+
+<div id="exam-page" class="container hidden">
+    <div class="exam-header">
+        <div id="user-display" style="font-weight: 600;"></div>
+        <div id="timer">45:00</div>
+    </div>
+    <div id="quiz-container">
+        <div id="progress" class="progress-bar">Question 1 of 30</div>
+        <p class="question-text" id="question-content"></p>
+        <div id="options-container"></div>
+        <button class="btn" id="next-btn" onclick="nextQuestion()" style="margin-top:20px">Next Question</button>
+    </div>
+</div>
+
+<div id="result-page" class="container hidden" style="text-align:center">
+    <h2>Examination Summary</h2>
+    <div id="user-final-info" style="font-size: 1.1rem; margin-bottom: 10px;"></div>
+    <div id="final-stats"></div>
+    <div id="pass-status"></div>
+    <p id="sync-status" class="sync-text">Synchronizing results with database...</p>
+    <button class="btn" onclick="goHome()" style="margin-top:20px; background: #6c757d;">RESTART (BACK TO HOME)</button>
+</div>
+
+<script>
+// --- GOOGLE SHEETS CONFIGURATION ---
+const scriptURL = 'https://script.google.com/macros/s/AKfycbxsBLfursk1VDon5I9oxduvO_PIH_7fLvDTrdtjSQDenrrh_2DxfI4pxm5Il1yEXqhx1w/exec';
+
+const questionsData = [
+    // VT Questions
+    { q: "What is the maximum viewing distance for visual inspection per ASME V?", a: "600 mm (24 inches)", b: "1000 mm (40 inches)", correct: "a" },
+    { q: "Is a borescope used for Direct Visual Testing?", a: "True", b: "False (It is Remote VT)", correct: "b" },
+    { q: "Undercut is commonly caused by which of the following?", a: "Excessive Amperage", b: "Slow Travel Speed", correct: "a" },
+    { q: "Which tool is best to measure the bevel angle on a weld joint?", a: "Magnifier", b: "Weld Gauge", correct: "b" },
+    { q: "What is the minimum light intensity required for VT (Lux)?", a: "1000 Lux", b: "500 Lux", correct: "a" },
+    { q: "Overlap is categorized as a surface defect. True or False?", a: "True", b: "False", correct: "a" },
+    { q: "VT should only be performed after the final cap is finished.", a: "True", b: "False (Must check every pass)", correct: "b" },
+    { q: "Arc Strike occurs when the electrode touches the base metal.", a: "True", b: "False", correct: "a" },
+    { q: "Which defect is more critical for structural integrity?", a: "Porosity (Rounded)", b: "Crack (Linear)", correct: "b" },
+    { q: "Acceptance criteria are determined by the inspector's opinion.", a: "True", b: "False (Based on Code/Standard)", correct: "b" },
+    // PT Questions
+    { q: "What is the basic physical principle of Liquid Penetrant Testing?", a: "Magnetic Pull", b: "Capillary Action", correct: "b" },
+    { q: "PT can detect cracks that are 2mm below the surface.", a: "True", b: "False (Only surface-breaking)", correct: "b" },
+    { q: "The time allowed for penetrant to soak into a defect is called:", a: "Dwell Time", b: "Development Time", correct: "a" },
+    { q: "Which PT method is more sensitive for fine cracks?", a: "Visible (Red Dye)", b: "Fluorescent", correct: "b" },
+    { q: "Pre-cleaning is vital to remove oil, grease, or dirt.", a: "True", b: "False", correct: "a" },
+    { q: "Which removal method has the highest risk of 'over-washing'?", a: "Solvent Removable", b: "Water Washable", correct: "b" },
+    { q: "Developer should be applied while the surface is wet with penetrant.", a: "True", b: "False", correct: "b" },
+    { q: "The primary function of the developer is 'Blotting'.", a: "True", b: "False", correct: "a" },
+    { q: "PT can be used on non-porous ceramic materials.", a: "True", b: "False", correct: "a" },
+    { q: "A red straight line on the developer indicates which type of defect?", a: "Linear (Crack)", b: "Rounded (Porosity)", correct: "a" },
+    // MT Questions
+    { q: "MT can only be performed on materials that are:", a: "Conductive", b: "Ferromagnetic", correct: "b" },
+    { q: "AC Current is superior for detecting surface defects.", a: "True", b: "False", correct: "a" },
+    { q: "The interruption of a magnetic field by a defect is called:", a: "Magnetic Flux Leakage", b: "Magnetic Resistance", correct: "a" },
+    { q: "The magnetic field should be ____ to the crack direction.", a: "Parallel", b: "Perpendicular (90 degrees)", correct: "b" },
+    { q: "Which tool is most common for portable field MT inspection?", a: "Electromagnetic Yoke", b: "Coil", correct: "a" },
+    { q: "Which current provides deeper magnetic field penetration?", a: "Direct Current (DC)", b: "Alternating Current (AC)", correct: "a" },
+    { q: "Demagnetization is required if residual magnetism is harmful.", a: "True", b: "False", correct: "a" },
+    { q: "A Pie Gauge is used to verify field direction and sensitivity.", a: "True", b: "False", correct: "a" },
+    { q: "Wet particles are more sensitive for fine cracks than dry ones.", a: "True", b: "False", correct: "a" },
+    { q: "How does a sub-surface defect indication appear in MT?", a: "Sharp and Clear", b: "Broad and Fuzzy", correct: "b" }
+];
+
+let shuffledQuestions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let timerInterval;
+let timeLeft = 45 * 60; // 45 MINUTES
+let selectedAnswer = null;
+
+function startExam() {
+    const name = document.getElementById('user-name').value;
+    const nim = document.getElementById('user-nim').value;
+
+    if (!name || !nim) {
+        alert("Please enter both Name and NIM!");
+        return;
+    }
+
+    score = 0;
+    currentQuestionIndex = 0;
+    timeLeft = 45 * 60;
+    
+    document.getElementById('login-page').classList.add('hidden');
+    document.getElementById('result-page').classList.add('hidden');
+    document.getElementById('exam-page').classList.remove('hidden');
+    document.getElementById('user-display').innerText = `Inspector: ${name}`;
+
+    shuffledQuestions = [...questionsData].sort(() => Math.random() - 0.5);
+    
+    startTimer();
+    showQuestion();
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        document.getElementById('timer').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            endExam();
+        }
+        timeLeft--;
+    }, 1000);
+}
+
+function showQuestion() {
+    const q = shuffledQuestions[currentQuestionIndex];
+    document.getElementById('progress').innerText = `Question ${currentQuestionIndex + 1} of ${shuffledQuestions.length}`;
+    document.getElementById('question-content').innerText = q.q;
+    
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = `
+        <div class="option" onclick="selectOption('a', this)">A. ${q.a}</div>
+        <div class="option" onclick="selectOption('b', this)">B. ${q.b}</div>
+    `;
+    selectedAnswer = null;
+    document.getElementById('next-btn').disabled = true;
+    document.getElementById('next-btn').innerText = (currentQuestionIndex === shuffledQuestions.length - 1) ? "Submit & Finish" : "Next Question";
+}
+
+function selectOption(ans, element) {
+    selectedAnswer = ans;
+    const options = document.querySelectorAll('.option');
+    options.forEach(opt => opt.classList.remove('selected'));
+    element.classList.add('selected');
+    document.getElementById('next-btn').disabled = false;
+}
+
+function nextQuestion() {
+    if (selectedAnswer === shuffledQuestions[currentQuestionIndex].correct) {
+        score++;
+    }
+
+    currentQuestionIndex++;
+    if (currentQuestionIndex < shuffledQuestions.length) {
+        showQuestion();
+    } else {
+        endExam();
+    }
+}
+
+function endExam() {
+    clearInterval(timerInterval);
+    document.getElementById('exam-page').classList.add('hidden');
+    document.getElementById('result-page').classList.remove('hidden');
+
+    const total = shuffledQuestions.length;
+    const finalScore = Math.round((score / total) * 100);
+    const name = document.getElementById('user-name').value;
+    const nim = document.getElementById('user-nim').value;
+    const status = finalScore >= 70 ? 'PASS' : 'FAIL';
+
+    document.getElementById('user-final-info').innerHTML = `<strong>${name}</strong> | ID: ${nim}`;
+    document.getElementById('final-stats').innerHTML = `
+        <p>Correct Answers: ${score} / ${total}</p>
+        <div class="result-score ${finalScore >= 70 ? 'pass' : 'fail'}">${finalScore}</div>
+    `;
+
+    const statusDiv = document.getElementById('pass-status');
+    statusDiv.innerHTML = `<h2 class="${finalScore >= 70 ? 'pass' : 'fail'}">STATUS: ${status}</h2>`;
+
+    sendToSheet(name, nim, finalScore, status);
+}
+
+function sendToSheet(name, nim, score, status) {
+    if (scriptURL === 'MASUKKAN_URL_WEB_APP_ANDA_DISINI') {
+        document.getElementById('sync-status').innerText = "Notice: G-Sheet integration not configured.";
+        return;
+    }
+    const data = { name, nim, score, status };
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        document.getElementById('sync-status').innerText = "Results successfully synced to Google Sheets.";
+        document.getElementById('sync-status').style.color = "green";
+    })
+    .catch(() => {
+        document.getElementById('sync-status').innerText = "Sync failed. Check connection.";
+    });
+}
+
+function goHome() {
+    document.getElementById('user-name').value = '';
+    document.getElementById('user-nim').value = '';
+    document.getElementById('result-page').classList.add('hidden');
+    document.getElementById('login-page').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
